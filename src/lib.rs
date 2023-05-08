@@ -292,17 +292,11 @@ impl<C> ProxyConnector<C> {
 
         #[cfg(feature = "rustls")]
         {
-            let certs = rustls_native_certs::load_native_certs()?.into_iter().map(|der| {
-                let anchor = webpki::TrustAnchor::try_from_cert_der(&der.0).map_err(io_err)?;
-
-                Ok(tokio_rustls::rustls::OwnedTrustAnchor::from_subject_spki_name_constraints(
-                    anchor.subject,
-                    anchor.spki,
-                    anchor.name_constraints,
-                ))
-            }).collect::<Result<Vec<_>, io::Error>>()?;
-
-            roots.add_server_trust_anchors(certs.into_iter());
+            let certs = rustls_native_certs::load_native_certs()?
+                .iter()
+                .map(|c| c.0.clone())
+                .collect::<Vec<_>>();
+            roots.add_parsable_certificates(&certs);
         }
 
         #[cfg(feature = "rustls-webpki")]
